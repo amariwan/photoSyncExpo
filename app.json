@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "fetch"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,6 +32,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow PhotoSync to read your camera roll so it can upload new photos and videos.",
+          "savePhotosPermission": "Allow PhotoSync to save generated media if needed."
+        }
+      ],
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {

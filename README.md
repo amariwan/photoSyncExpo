@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# PhotoSync
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+PhotoSync is an Expo/React Native app that automatically detects new photos and videos in your iPhone Camera Roll and uploads them to an SMB destination.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Automatic photo and video detection from Camera Roll
+- SMB connection settings (host, port, share, remote path)
+- Username/password authentication with secure credential storage
+- Upload queue with per-file and overall progress visibility
+- Configurable sync behavior (auto-launch scan, background sync toggle, max batch size)
+- Wi-Fi-only upload policy
+- Media filters (photos only, videos only, or both)
+- Retry policy with per-item attempt tracking
+- Queue actions: retry failed, clear failed, clear completed, clear all
+- Stop sync after current item
+- Naming and folder strategy controls (flat vs monthly, original vs timestamp-prefixed names)
+- Auto-cleanup of completed queue items older than N days
+- Persisted queue state between launches
+- Background fetch registration with configurable interval
 
-   ```bash
-   npm install
-   ```
+## Current SMB Transport Status
 
-2. Start the app
+This project includes a `MockSmbUploader` implementation wired into the full sync workflow.
 
-   ```bash
-   npx expo start
-   ```
+- Detection, queueing, progress, state persistence, and settings are fully implemented.
+- The transport layer is structured behind an interface so you can replace the mock uploader with a production SMB client/native module without changing the rest of the app.
 
-In the output, you'll find options to open the app in a
+## Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Install dependencies:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Start Expo:
 
-## Learn more
+```bash
+npm run start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Run on iOS (recommended as a development build for full background behavior):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm run ios
+```
 
-## Join the community
+## Project Structure
 
-Join our community of developers creating universal apps.
+- `app/(tabs)/index.tsx`: Sync dashboard (queue, progress, logs, controls)
+- `app/(tabs)/settings.tsx`: SMB and sync settings
+- `providers/photo-sync-provider.tsx`: Shared sync state machine, retry/cancel logic, queue actions
+- `services/photosync/media-scanner.ts`: Camera Roll permission + new media scanning
+- `services/photosync/smb-uploader.ts`: SMB uploader interface + mock implementation
+- `services/photosync/background-task.ts`: Background fetch registration
+- `services/photosync/storage.ts`: Persistent settings, metadata, logs, queue, and credentials
+- `services/photosync/network.ts`: Network policy checks (Wi-Fi-only gate)
+- `types/photosync.ts`: Shared app data contracts
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Notes
+
+- iOS background execution behavior depends on system scheduling and development build capabilities.
+- Replace `MockSmbUploader` in `services/photosync/smb-uploader.ts` with a production SMB implementation for real network share uploads.
