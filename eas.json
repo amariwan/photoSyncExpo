@@ -10,7 +10,7 @@
                 "buildType": "apk"
             },
             "ios": {
-                "buildType": "simulator"
+                "simulator": true
             }
         },
         "preview": {
@@ -21,9 +21,6 @@
             "distribution": "store",
             "android": {
                 "buildType": "app-bundle"
-            },
-            "ios": {
-                "buildType": "archive"
             }
         }
     }
