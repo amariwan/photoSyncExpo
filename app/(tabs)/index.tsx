@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -8,12 +9,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Reveal } from '@/components/ui/reveal';
 import { Fonts } from '@/constants/theme';
 import { usePhotoSync } from '@/providers/photo-sync-provider';
-import { Reveal } from '@/components/ui/reveal';
 
 function formatTimestamp(value: number | null): string {
   if (!value) {
