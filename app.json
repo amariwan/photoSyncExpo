@@ -12,9 +12,12 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
+          "fetch",
           "fetch"
-        ]
-      }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.amariwan.photosync"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,7 +35,8 @@
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
-      ]
+      ],
+      "package": "com.amariwan.photosync"
     },
     "web": {
       "output": "static",
