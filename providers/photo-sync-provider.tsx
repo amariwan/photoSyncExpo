@@ -1,51 +1,76 @@
+import { isRunningInExpoGo } from 'expo';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { checkNetworkGate } from '@/services/photosync/network';
-import {
-  getMediaPermissionState,
-  requestMediaPermission,
-  scanNewCameraRollMedia,
-} from '@/services/photosync/media-scanner';
-import {
-  loadLogs,
-  loadQueue,
-  loadSmbConfig,
-  loadSmbPassword,
-  loadSettings,
-  loadSyncMetadata,
-  saveLogs,
-  saveQueue,
-  saveSmbConfig,
-  saveSmbPassword,
-  saveSettings,
-  saveSyncMetadata,
-} from '@/services/photosync/storage';
-import {
-  buildRemotePath,
-  MockSmbUploader,
-  validateSmbConfig,
-} from '@/services/photosync/smb-uploader';
 import {
   setBackgroundSyncRunner,
   syncBackgroundTaskRegistration,
 } from '@/services/photosync/background-task';
 import {
+  getMediaPermissionState,
+  requestMediaPermission,
+  scanNewCameraRollMedia,
+} from '@/services/photosync/media-scanner';
+import { checkNetworkAvailable, checkNetworkGate } from '@/services/photosync/network';
+import {
+  buildRemotePath,
+  createSmbUploader,
+  type SmbConnectionConfig,
+  validateSmbConfig,
+} from '@/services/photosync/smb-uploader';
+import {
+  buildRemotePath as buildSftpRemotePath,
+  createSftpUploader,
+  type SftpConnectionConfig,
+  validateSftpConfig,
+} from '@/services/photosync/sftp-uploader';
+import {
+  loadLogs,
+  loadQueue,
+  loadSettings,
+  loadSftpConfig,
+  loadSftpPassword,
+  loadSmbConfig,
+  loadSmbPassword,
+  loadSyncMetadata,
+  saveLogs,
+  saveQueue,
+  saveSettings,
+  saveSftpConfig,
+  saveSftpPassword,
+  saveSmbConfig,
+  saveSmbPassword,
+  saveSyncMetadata
+} from '@/services/photosync/storage';
+import {
+  DEFAULT_SFTP_CONFIG,
   DEFAULT_SMB_CONFIG,
   DEFAULT_SYNC_METADATA,
   DEFAULT_SYNC_SETTINGS,
   type PermissionState,
+  type RemoteFileEntry,
+  type SftpConfig,
   type SmbConfig,
   type SyncLogEntry,
   type SyncLogLevel,
   type SyncMetadata,
   type SyncPhase,
   type SyncSettings,
+  type TransportType,
   type UploadItem,
 } from '@/types/photosync';
 
-const uploader = new MockSmbUploader();
+const smbUploader = createSmbUploader();
+const sftpUploader = createSftpUploader();
 const MAX_LOG_ENTRIES = 200;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const EXPO_GO_BACKGROUND_SYNC_MESSAGE =
+  'Background sync is unavailable in Expo Go. Create a development build to enable periodic background checks.';
+
+interface ConnectionTestResult {
+  ok: boolean;
+  message: string;
+  latencyMs?: number;
+}
 
 interface RunSyncOptions {
   silent?: boolean;
@@ -58,6 +83,8 @@ interface PhotoSyncContextValue {
   permissionState: PermissionState;
   smbConfig: SmbConfig;
   smbPassword: string;
+  sftpConfig: SftpConfig;
+  sftpPassword: string;
   syncSettings: SyncSettings;
   metadata: SyncMetadata;
   queue: UploadItem[];
@@ -65,11 +92,22 @@ interface PhotoSyncContextValue {
   uploaderImplementation: string;
   cancelAfterCurrentItem: boolean;
   requestPhotoPermission: () => Promise<PermissionState>;
-  saveConnectionSettings: (config: SmbConfig, password: string) => Promise<void>;
+  saveConnectionSettings: (
+    transportType: TransportType,
+    config: SmbConfig | SftpConfig,
+    password: string
+  ) => Promise<void>;
+  testServerConnection: (
+    transportType?: TransportType,
+    config?: SmbConfig | SftpConfig,
+    password?: string
+  ) => Promise<ConnectionTestResult>;
+  listRemoteDirectory: (path: string) => Promise<RemoteFileEntry[]>;
   saveSyncSettings: (settings: SyncSettings) => Promise<void>;
   scanForNewMedia: () => Promise<number>;
   runSync: (options?: RunSyncOptions) => Promise<number>;
   requestCancelAfterCurrentItem: () => void;
+  retryUploadItem: (itemId: string) => void;
   retryFailedUploads: () => void;
   clearCompletedUploads: () => void;
   clearFailedUploads: () => void;
@@ -166,12 +204,34 @@ function cleanupCompletedQueue(
   return removed > 0 ? { queue: cleaned, removed } : { queue, removed: 0 };
 }
 
+function normalizeSmbConnectionConfig(config: SmbConfig): SmbConfig {
+  return {
+    host: config.host.trim(),
+    port: Number.isFinite(config.port) ? Math.trunc(config.port) : DEFAULT_SMB_CONFIG.port,
+    share: config.share.trim(),
+    remotePath: config.remotePath.trim() || DEFAULT_SMB_CONFIG.remotePath,
+    username: config.username.trim(),
+  };
+}
+
+function normalizeSftpConnectionConfig(config: SftpConfig): SftpConfig {
+  return {
+    host: config.host.trim(),
+    port: Number.isFinite(config.port) ? Math.trunc(config.port) : DEFAULT_SFTP_CONFIG.port,
+    remotePath: config.remotePath.trim() || DEFAULT_SFTP_CONFIG.remotePath,
+    username: config.username.trim(),
+    authType: config.authType === 'key' ? 'key' : 'password',
+  };
+}
+
 export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [phase, setPhase] = useState<SyncPhase>('idle');
   const [permissionState, setPermissionState] = useState<PermissionState>('unknown');
   const [smbConfig, setSmbConfig] = useState<SmbConfig>(DEFAULT_SMB_CONFIG);
   const [smbPassword, setSmbPassword] = useState('');
+  const [sftpConfig, setSftpConfig] = useState<SftpConfig>(DEFAULT_SFTP_CONFIG);
+  const [sftpPassword, setSftpPassword] = useState('');
   const [syncSettings, setSyncSettings] = useState<SyncSettings>(DEFAULT_SYNC_SETTINGS);
   const [metadata, setMetadata] = useState<SyncMetadata>(DEFAULT_SYNC_METADATA);
   const [queue, setQueue] = useState<UploadItem[]>([]);
@@ -182,11 +242,14 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
   const permissionStateRef = useRef(permissionState);
   const smbConfigRef = useRef(smbConfig);
   const smbPasswordRef = useRef(smbPassword);
+  const sftpConfigRef = useRef(sftpConfig);
+  const sftpPasswordRef = useRef(sftpPassword);
   const syncSettingsRef = useRef(syncSettings);
   const metadataRef = useRef(metadata);
   const queueRef = useRef(queue);
   const cancelAfterCurrentItemRef = useRef(cancelAfterCurrentItem);
   const launchScanDoneRef = useRef(false);
+  const expoGoBackgroundSyncNoticeShownRef = useRef(false);
 
   useEffect(() => {
     phaseRef.current = phase;
@@ -203,6 +266,14 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     smbPasswordRef.current = smbPassword;
   }, [smbPassword]);
+
+  useEffect(() => {
+    sftpConfigRef.current = sftpConfig;
+  }, [sftpConfig]);
+
+  useEffect(() => {
+    sftpPasswordRef.current = sftpPassword;
+  }, [sftpPassword]);
 
   useEffect(() => {
     syncSettingsRef.current = syncSettings;
@@ -279,6 +350,8 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
           loadedSettings,
           loadedSmbConfig,
           loadedPassword,
+          loadedSftpConfig,
+          loadedSftpPassword,
           loadedMetadata,
           loadedLogs,
           loadedQueue,
@@ -286,6 +359,8 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
           loadSettings(),
           loadSmbConfig(),
           loadSmbPassword(),
+          loadSftpConfig(),
+          loadSftpPassword(),
           loadSyncMetadata(),
           loadLogs(),
           loadQueue(),
@@ -306,6 +381,8 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
         setSyncSettings(loadedSettings);
         setSmbConfig(loadedSmbConfig);
         setSmbPassword(loadedPassword);
+        setSftpConfig(loadedSftpConfig);
+        setSftpPassword(loadedSftpPassword);
         setMetadata(loadedMetadata);
         setLogs(trimLogs(loadedLogs));
         setQueue(cleanedQueue);
@@ -341,22 +418,162 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
   }, [appendLog]);
 
   const saveConnectionSettings = useCallback(
-    async (config: SmbConfig, password: string): Promise<void> => {
-      const normalizedConfig: SmbConfig = {
-        host: config.host.trim(),
-        port: Number.isFinite(config.port) ? Math.trunc(config.port) : DEFAULT_SMB_CONFIG.port,
-        share: config.share.trim(),
-        remotePath: config.remotePath.trim() || DEFAULT_SMB_CONFIG.remotePath,
-        username: config.username.trim(),
-      };
+    async (
+      transportType: TransportType,
+      config: SmbConfig | SftpConfig,
+      password: string
+    ): Promise<void> => {
+      if (transportType === 'sftp') {
+        const normalizedConfig = normalizeSftpConnectionConfig(config as SftpConfig);
+        const normalizedPassword = password.trim();
 
-      await Promise.all([saveSmbConfig(normalizedConfig), saveSmbPassword(password)]);
+        await Promise.all([
+          saveSftpConfig(normalizedConfig),
+          saveSftpPassword(normalizedPassword),
+        ]);
+
+        setSftpConfig(normalizedConfig);
+        setSftpPassword(normalizedPassword);
+        appendLog('info', 'SFTP connection settings saved.');
+        return;
+      }
+
+      const normalizedConfig = normalizeSmbConnectionConfig(config as SmbConfig);
+      const normalizedPassword = password.trim();
+
+      await Promise.all([
+        saveSmbConfig(normalizedConfig),
+        saveSmbPassword(normalizedPassword),
+      ]);
 
       setSmbConfig(normalizedConfig);
-      setSmbPassword(password.trim());
-      appendLog('info', 'Connection settings saved.');
+      setSmbPassword(normalizedPassword);
+      appendLog('info', 'SMB connection settings saved.');
     },
     [appendLog]
+  );
+
+  const testServerConnection = useCallback(
+    async (
+      transportType?: TransportType,
+      config?: SmbConfig | SftpConfig,
+      password?: string
+    ): Promise<ConnectionTestResult> => {
+      const activeTransport = transportType ?? syncSettingsRef.current.transportType;
+      const networkGate = await checkNetworkAvailable().catch(() => ({
+        ok: false,
+        reason: 'Could not determine network state.',
+      }));
+
+      if (!networkGate.ok) {
+        const message = networkGate.reason ?? 'No network connection available.';
+        appendLog('error', `Connection test failed: ${message}`);
+        return {
+          ok: false,
+          message,
+        };
+      }
+
+      try {
+        let result: ConnectionTestResult;
+
+        if (activeTransport === 'sftp') {
+          const normalizedConfig = normalizeSftpConnectionConfig(
+            (config as SftpConfig | undefined) ?? sftpConfigRef.current
+          );
+          const normalizedPassword =
+            password === undefined ? sftpPasswordRef.current.trim() : password.trim();
+          const connectionConfig: SftpConnectionConfig = {
+            ...normalizedConfig,
+            password: normalizedPassword,
+          };
+
+          const validationErrors = validateSftpConfig(connectionConfig);
+          if (validationErrors.length > 0) {
+            const message = validationErrors[0];
+            appendLog('error', `Connection test failed: ${message}`);
+            return {
+              ok: false,
+              message,
+            };
+          }
+
+          result = await sftpUploader.testConnection(connectionConfig);
+        } else {
+          const normalizedConfig = normalizeSmbConnectionConfig(
+            (config as SmbConfig | undefined) ?? smbConfigRef.current
+          );
+          const normalizedPassword =
+            password === undefined ? smbPasswordRef.current.trim() : password.trim();
+          const connectionConfig: SmbConnectionConfig = {
+            ...normalizedConfig,
+            password: normalizedPassword,
+          };
+
+          const validationErrors = validateSmbConfig(connectionConfig);
+          if (validationErrors.length > 0) {
+            const message = validationErrors[0];
+            appendLog('error', `Connection test failed: ${message}`);
+            return {
+              ok: false,
+              message,
+            };
+          }
+
+          result = await smbUploader.testConnection(connectionConfig);
+        }
+
+        if (result.ok) {
+          const latencySuffix =
+            result.latencyMs !== undefined ? ` (${result.latencyMs}ms)` : '';
+          appendLog('info', `Connection test succeeded${latencySuffix}: ${result.message}`);
+        } else {
+          appendLog('error', `Connection test failed: ${result.message}`);
+        }
+
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        appendLog('error', `Connection test failed: ${message}`);
+        return {
+          ok: false,
+          message,
+        };
+      }
+    },
+    [appendLog]
+  );
+
+  const listRemoteDirectory = useCallback(
+    async (path: string): Promise<RemoteFileEntry[]> => {
+      const activeTransport = syncSettingsRef.current.transportType;
+      const normalizedPath = path.trim() || '/';
+
+      if (activeTransport === 'sftp') {
+        const connectionConfig: SftpConnectionConfig = {
+          ...normalizeSftpConnectionConfig(sftpConfigRef.current),
+          password: sftpPasswordRef.current.trim(),
+        };
+        const validationErrors = validateSftpConfig(connectionConfig);
+        if (validationErrors.length > 0) {
+          throw new Error(validationErrors[0]);
+        }
+
+        return sftpUploader.listDirectory(connectionConfig, normalizedPath);
+      }
+
+      const connectionConfig: SmbConnectionConfig = {
+        ...normalizeSmbConnectionConfig(smbConfigRef.current),
+        password: smbPasswordRef.current.trim(),
+      };
+      const validationErrors = validateSmbConfig(connectionConfig);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors[0]);
+      }
+
+      return smbUploader.listDirectory(connectionConfig, normalizedPath);
+    },
+    []
   );
 
   const saveSyncSettingsHandler = useCallback(
@@ -380,6 +597,7 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
           0,
           Math.min(90, Math.trunc(settings.clearCompletedAfterDays))
         ),
+        transportType: settings.transportType === 'sftp' ? 'sftp' : 'smb',
       };
 
       await saveSettings(normalized);
@@ -463,12 +681,20 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
 
       setCancelAfterCurrentItem(false);
 
-      const activeConfig = {
-        ...smbConfigRef.current,
-        password: smbPasswordRef.current,
+      const activeTransport = syncSettingsRef.current.transportType;
+      const activeSmbConfig: SmbConnectionConfig = {
+        ...normalizeSmbConnectionConfig(smbConfigRef.current),
+        password: smbPasswordRef.current.trim(),
+      };
+      const activeSftpConfig: SftpConnectionConfig = {
+        ...normalizeSftpConnectionConfig(sftpConfigRef.current),
+        password: sftpPasswordRef.current.trim(),
       };
 
-      const validationErrors = validateSmbConfig(activeConfig);
+      const validationErrors =
+        activeTransport === 'sftp'
+          ? validateSftpConfig(activeSftpConfig)
+          : validateSmbConfig(activeSmbConfig);
       if (validationErrors.length > 0) {
         appendLog('error', validationErrors[0]);
         return 0;
@@ -483,7 +709,6 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
         appendLog('error', networkGate.reason ?? 'Network policy blocked sync.');
         return 0;
       }
-      applyCompletedCleanup(syncSettingsRef.current, { silent: true });
       applyCompletedCleanup(syncSettingsRef.current, true);
 
       const maxRetryAttempts = syncSettingsRef.current.maxRetryAttempts;
@@ -533,33 +758,44 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
             })
           );
 
-          const remotePath = buildRemotePath(
-            activeConfig.remotePath,
-            item,
-            syncSettingsRef.current.folderStrategy,
-            syncSettingsRef.current.filenameStrategy
-          );
+          const remotePath =
+            activeTransport === 'sftp'
+              ? buildSftpRemotePath(
+                  activeSftpConfig.remotePath,
+                  item,
+                  syncSettingsRef.current.folderStrategy,
+                  syncSettingsRef.current.filenameStrategy
+                )
+              : buildRemotePath(
+                  activeSmbConfig.remotePath,
+                  item,
+                  syncSettingsRef.current.folderStrategy,
+                  syncSettingsRef.current.filenameStrategy
+                );
 
           try {
-            await uploader.uploadFile(
-              activeConfig,
-              {
-                assetId: item.id,
-                filename: item.filename,
-                localUri: item.localUri,
-                mediaType: item.mediaType,
-                creationTime: item.creationTime,
-                remotePath,
-              },
-              (progress) => {
-                setQueueState((currentQueue) =>
-                  updateUploadItem(currentQueue, item.id, {
-                    status: 'uploading',
-                    progress: progress.fraction,
-                  })
-                );
-              }
-            );
+            const uploadRequest = {
+              assetId: item.id,
+              filename: item.filename,
+              localUri: item.localUri,
+              mediaType: item.mediaType,
+              creationTime: item.creationTime,
+              remotePath,
+            };
+            const handleProgress = (progress: { fraction: number }) => {
+              setQueueState((currentQueue) =>
+                updateUploadItem(currentQueue, item.id, {
+                  status: 'uploading',
+                  progress: progress.fraction,
+                })
+              );
+            };
+
+            if (activeTransport === 'sftp') {
+              await sftpUploader.uploadFile(activeSftpConfig, uploadRequest, handleProgress);
+            } else {
+              await smbUploader.uploadFile(activeSmbConfig, uploadRequest, handleProgress);
+            }
 
             uploadedCount += 1;
             maxSyncedTime = Math.max(maxSyncedTime, item.creationTime);
@@ -631,6 +867,37 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
     setCancelAfterCurrentItem(true);
   }, []);
 
+  const retryUploadItem = useCallback(
+    (itemId: string) => {
+      const maxRetries = syncSettingsRef.current.maxRetryAttempts;
+      let retriedFilename: string | null = null;
+
+      setQueueState((current) =>
+        current.map((item) => {
+          const canRetry =
+            item.id === itemId && item.status === 'failed' && item.attemptCount < maxRetries;
+
+          if (!canRetry) {
+            return item;
+          }
+
+          retriedFilename = item.filename;
+          return {
+            ...item,
+            status: 'pending',
+            progress: 0,
+            errorMessage: undefined,
+          };
+        })
+      );
+
+      if (retriedFilename) {
+        appendLog('info', `Moved ${retriedFilename} back to pending.`);
+      }
+    },
+    [appendLog, setQueueState]
+  );
+
   const retryFailedUploads = useCallback(() => {
     const maxRetries = syncSettingsRef.current.maxRetryAttempts;
     let retried = 0;
@@ -681,6 +948,16 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (syncSettings.backgroundSyncEnabled && isRunningInExpoGo()) {
+      if (!expoGoBackgroundSyncNoticeShownRef.current) {
+        appendLog('info', EXPO_GO_BACKGROUND_SYNC_MESSAGE);
+        expoGoBackgroundSyncNoticeShownRef.current = true;
+      }
+      return;
+    }
+
+    expoGoBackgroundSyncNoticeShownRef.current = false;
+
     void syncBackgroundTaskRegistration(
       syncSettings.backgroundSyncEnabled,
       syncSettings.backgroundIntervalMinutes * 60
@@ -719,18 +996,26 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
       permissionState,
       smbConfig,
       smbPassword,
+      sftpConfig,
+      sftpPassword,
       syncSettings,
       metadata,
       queue,
       logs,
-      uploaderImplementation: uploader.implementationName,
+      uploaderImplementation:
+        syncSettings.transportType === 'sftp'
+          ? sftpUploader.implementationName
+          : smbUploader.implementationName,
       cancelAfterCurrentItem,
       requestPhotoPermission,
       saveConnectionSettings,
+      testServerConnection,
+      listRemoteDirectory,
       saveSyncSettings: saveSyncSettingsHandler,
       scanForNewMedia,
       runSync,
       requestCancelAfterCurrentItem,
+      retryUploadItem,
       retryFailedUploads,
       clearCompletedUploads,
       clearFailedUploads,
@@ -749,14 +1034,19 @@ export function PhotoSyncProvider({ children }: { children: React.ReactNode }) {
       queue,
       requestCancelAfterCurrentItem,
       requestPhotoPermission,
+      retryUploadItem,
       retryFailedUploads,
       runSync,
+      listRemoteDirectory,
       saveConnectionSettings,
       saveSyncSettingsHandler,
       scanForNewMedia,
       smbConfig,
       smbPassword,
+      sftpConfig,
+      sftpPassword,
       syncSettings,
+      testServerConnection,
     ]
   );
 

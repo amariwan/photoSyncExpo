@@ -1,6 +1,12 @@
+import PhotoSyncTransportModule, {
+  type NativeSmbConnectionConfig,
+  type NativeUploadRequest,
+  type PhotoSyncTransportModuleType,
+} from "@/modules/photo-sync-transport";
 import type {
   FilenameStrategy,
   FolderStrategy,
+  RemoteFileEntry,
   SmbConfig,
   UploadItem,
 } from "@/types/photosync";
@@ -24,13 +30,26 @@ export interface SmbUploadRequest {
   remotePath: string;
 }
 
+export interface SmbConnectionTestResult {
+  ok: boolean;
+  message: string;
+  latencyMs?: number;
+}
+
 export interface SmbUploader {
   readonly implementationName: string;
+  testConnection(
+    config: SmbConnectionConfig
+  ): Promise<SmbConnectionTestResult>;
   uploadFile(
     config: SmbConnectionConfig,
     request: SmbUploadRequest,
     onProgress: (progress: UploadProgress) => void
   ): Promise<void>;
+  listDirectory(
+    config: SmbConnectionConfig,
+    path: string
+  ): Promise<RemoteFileEntry[]>;
 }
 
 export function validateSmbConfig(config: SmbConnectionConfig): string[] {
@@ -59,43 +78,123 @@ export function validateSmbConfig(config: SmbConnectionConfig): string[] {
   return errors;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
+const NATIVE_MODULE_MISSING_MESSAGE =
+  "PhotoSyncTransport native module is not available. Build a development client (npx expo run:android / npx expo run:ios).";
+
+function toNativeSmbConfig(config: SmbConnectionConfig): NativeSmbConnectionConfig {
+  return {
+    host: config.host,
+    port: config.port,
+    share: config.share,
+    remotePath: config.remotePath,
+    username: config.username,
+    password: config.password,
+  };
 }
 
-export class MockSmbUploader implements SmbUploader {
-  readonly implementationName = "Mock SMB Uploader";
+function toNativeUploadRequest(request: SmbUploadRequest): NativeUploadRequest {
+  return {
+    assetId: request.assetId,
+    filename: request.filename,
+    localUri: request.localUri,
+    mediaType: request.mediaType,
+    creationTime: request.creationTime,
+    remotePath: request.remotePath,
+  };
+}
+
+
+
+
+
+
+export class NativeSmbUploader implements SmbUploader {
+  readonly implementationName = "Native SMB Uploader (PhotoSyncTransport)";
+
+  constructor(private readonly nativeModule: PhotoSyncTransportModuleType) {}
+
+  async testConnection(
+    config: SmbConnectionConfig
+  ): Promise<SmbConnectionTestResult> {
+    return this.nativeModule.testSmbConnection(toNativeSmbConfig(config));
+  }
 
   async uploadFile(
-    _config: SmbConnectionConfig,
+    config: SmbConnectionConfig,
     request: SmbUploadRequest,
     onProgress: (progress: UploadProgress) => void
   ): Promise<void> {
-    const simulatedTotalBytes = Math.max(
-      request.filename.length * 1024 * 40,
-      2_000_000
-    );
-    const totalSteps = 12;
-
     onProgress({
       fraction: 0,
       transferredBytes: 0,
-      totalBytes: simulatedTotalBytes,
+      totalBytes: 1,
     });
 
-    for (let step = 1; step <= totalSteps; step += 1) {
-      await sleep(140);
+    await this.nativeModule.uploadSmbFile(
+      toNativeSmbConfig(config),
+      toNativeUploadRequest(request)
+    );
 
-      const fraction = step / totalSteps;
-      onProgress({
-        fraction,
-        transferredBytes: Math.round(simulatedTotalBytes * fraction),
-        totalBytes: simulatedTotalBytes,
-      });
-    }
+    onProgress({
+      fraction: 1,
+      transferredBytes: 1,
+      totalBytes: 1,
+    });
   }
+
+  async listDirectory(
+    config: SmbConnectionConfig,
+    path: string
+  ): Promise<RemoteFileEntry[]> {
+    const entries = await this.nativeModule.listSmbDirectory(
+      toNativeSmbConfig(config),
+      path
+    );
+
+    return entries.map((entry) => ({
+      name: entry.name,
+      type: entry.type === "directory" ? "directory" : "file",
+      size: entry.size,
+      modifiedTime: entry.modifiedTime,
+      path: entry.path,
+    }));
+  }
+}
+
+class UnavailableSmbUploader implements SmbUploader {
+  readonly implementationName = "Unavailable SMB Uploader";
+
+  async testConnection(
+    _config: SmbConnectionConfig
+  ): Promise<SmbConnectionTestResult> {
+    return {
+      ok: false,
+      message: NATIVE_MODULE_MISSING_MESSAGE,
+    };
+  }
+
+  async uploadFile(
+    _config: SmbConnectionConfig,
+    _request: SmbUploadRequest,
+    _onProgress: (progress: UploadProgress) => void
+  ): Promise<void> {
+    throw new Error(NATIVE_MODULE_MISSING_MESSAGE);
+  }
+
+  async listDirectory(
+    _config: SmbConnectionConfig,
+    _path: string
+  ): Promise<RemoteFileEntry[]> {
+    throw new Error(NATIVE_MODULE_MISSING_MESSAGE);
+  }
+}
+
+export function createSmbUploader(): SmbUploader {
+  if (PhotoSyncTransportModule) {
+    return new NativeSmbUploader(PhotoSyncTransportModule);
+  }
+
+  return new UnavailableSmbUploader();
 }
 
 function sanitizeFilename(value: string): string {

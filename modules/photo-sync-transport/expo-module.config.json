@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["PhotoSyncTransportModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.photosynctransport.PhotoSyncTransportModule"]
+  }
+}

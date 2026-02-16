@@ -5,11 +5,7 @@ export interface NetworkGateResult {
   reason?: string;
 }
 
-export async function checkNetworkGate(wifiOnly: boolean): Promise<NetworkGateResult> {
-  if (!wifiOnly) {
-    return { ok: true };
-  }
-
+export async function checkNetworkAvailable(): Promise<NetworkGateResult> {
   const state = await Network.getNetworkStateAsync();
   const hasConnection = Boolean(state.isConnected || state.isInternetReachable);
 
@@ -19,6 +15,22 @@ export async function checkNetworkGate(wifiOnly: boolean): Promise<NetworkGateRe
       reason: 'No network connection available.',
     };
   }
+
+  return { ok: true };
+}
+
+export async function checkNetworkGate(wifiOnly: boolean): Promise<NetworkGateResult> {
+  if (!wifiOnly) {
+    return { ok: true };
+  }
+
+  const connectivityGate = await checkNetworkAvailable();
+
+  if (!connectivityGate.ok) {
+    return connectivityGate;
+  }
+
+  const state = await Network.getNetworkStateAsync();
 
   if (state.type !== Network.NetworkStateType.WIFI && state.type !== Network.NetworkStateType.ETHERNET) {
     return {

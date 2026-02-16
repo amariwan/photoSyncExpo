@@ -14,20 +14,20 @@ interface RevealProps {
 
 export function Reveal({ children, delay = 0, style }: RevealProps) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(18)).current;
+  const translateY = useRef(new Animated.Value(14)).current;
 
   useEffect(() => {
     const animation = Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 420,
+        duration: 500,
         delay,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: 0,
-        duration: 460,
+        duration: 550,
         delay,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,

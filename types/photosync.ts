@@ -1,14 +1,16 @@
-export type PermissionState = 'unknown' | 'granted' | 'denied';
+export type PermissionState = "unknown" | "granted" | "denied";
 
-export type SyncPhase = 'idle' | 'scanning' | 'syncing';
+export type SyncPhase = "idle" | "scanning" | "syncing";
 
-export type UploadItemStatus = 'pending' | 'uploading' | 'completed' | 'failed';
+export type UploadItemStatus = "pending" | "uploading" | "completed" | "failed";
 
-export type SyncLogLevel = 'info' | 'error';
+export type SyncLogLevel = "info" | "error";
 
-export type FolderStrategy = 'byMonth' | 'flat';
+export type FolderStrategy = "byMonth" | "flat";
 
-export type FilenameStrategy = 'original' | 'timestampPrefix';
+export type FilenameStrategy = "original" | "timestampPrefix";
+
+export type TransportType = "smb" | "sftp";
 
 export interface SmbConfig {
   host: string;
@@ -16,6 +18,22 @@ export interface SmbConfig {
   share: string;
   remotePath: string;
   username: string;
+}
+
+export interface SftpConfig {
+  host: string;
+  port: number;
+  remotePath: string;
+  username: string;
+  authType: "password" | "key";
+}
+
+export interface RemoteFileEntry {
+  name: string;
+  type: "file" | "directory";
+  size?: number;
+  modifiedTime?: number;
+  path: string;
 }
 
 export interface SyncSettings {
@@ -30,6 +48,7 @@ export interface SyncSettings {
   folderStrategy: FolderStrategy;
   filenameStrategy: FilenameStrategy;
   clearCompletedAfterDays: number;
+  transportType: TransportType;
 }
 
 export interface SyncMetadata {
@@ -41,7 +60,7 @@ export interface UploadItem {
   id: string;
   filename: string;
   localUri: string;
-  mediaType: 'photo' | 'video';
+  mediaType: "photo" | "video";
   creationTime: number;
   progress: number;
   status: UploadItemStatus;
@@ -59,11 +78,19 @@ export interface SyncLogEntry {
 }
 
 export const DEFAULT_SMB_CONFIG: SmbConfig = {
-  host: '',
+  host: "",
   port: 445,
-  share: '',
-  remotePath: '/Camera Roll',
-  username: '',
+  share: "",
+  remotePath: "/Camera Roll",
+  username: "",
+};
+
+export const DEFAULT_SFTP_CONFIG: SftpConfig = {
+  host: "",
+  port: 22,
+  remotePath: "/home/user/photos",
+  username: "",
+  authType: "password",
 };
 
 export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
@@ -75,9 +102,10 @@ export const DEFAULT_SYNC_SETTINGS: SyncSettings = {
   wifiOnly: false,
   maxRetryAttempts: 3,
   backgroundIntervalMinutes: 15,
-  folderStrategy: 'byMonth',
-  filenameStrategy: 'original',
+  folderStrategy: "byMonth",
+  filenameStrategy: "original",
   clearCompletedAfterDays: 7,
+  transportType: "smb",
 };
 
 export const DEFAULT_SYNC_METADATA: SyncMetadata = {

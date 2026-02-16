@@ -2,9 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
 import {
+  DEFAULT_SFTP_CONFIG,
   DEFAULT_SMB_CONFIG,
   DEFAULT_SYNC_METADATA,
   DEFAULT_SYNC_SETTINGS,
+  type SftpConfig,
   type SmbConfig,
   type SyncLogEntry,
   type SyncMetadata,
@@ -14,11 +16,14 @@ import {
 
 const SETTINGS_KEY = 'photosync.settings';
 const SMB_CONFIG_KEY = 'photosync.smbConfig';
+const SFTP_CONFIG_KEY = 'photosync.sftpConfig';
 const SYNC_METADATA_KEY = 'photosync.metadata';
 const LOGS_KEY = 'photosync.logs';
 const QUEUE_KEY = 'photosync.queue';
 const SMB_PASSWORD_KEY = 'photosync.smbPassword';
 const SMB_PASSWORD_FALLBACK_KEY = 'photosync.smbPassword.fallback';
+const SFTP_PASSWORD_KEY = 'photosync.sftpPassword';
+const SFTP_PASSWORD_FALLBACK_KEY = 'photosync.sftpPassword.fallback';
 
 const MAX_LOG_ENTRIES = 200;
 
@@ -82,6 +87,10 @@ function sanitizeSettings(input: Partial<SyncSettings>): SyncSettings {
         ? input.filenameStrategy
         : DEFAULT_SYNC_SETTINGS.filenameStrategy,
     clearCompletedAfterDays,
+    transportType:
+      input.transportType === 'sftp' || input.transportType === 'smb'
+        ? input.transportType
+        : DEFAULT_SYNC_SETTINGS.transportType,
   };
 }
 
@@ -94,6 +103,18 @@ function sanitizeSmbConfig(input: Partial<SmbConfig>): SmbConfig {
     share: (input.share ?? '').trim(),
     remotePath: (input.remotePath ?? DEFAULT_SMB_CONFIG.remotePath).trim() || DEFAULT_SMB_CONFIG.remotePath,
     username: (input.username ?? '').trim(),
+  };
+}
+
+function sanitizeSftpConfig(input: Partial<SftpConfig>): SftpConfig {
+  const parsedPort = Number.isFinite(input.port) ? Math.trunc(input.port!) : DEFAULT_SFTP_CONFIG.port;
+
+  return {
+    host: (input.host ?? '').trim(),
+    port: Math.min(Math.max(parsedPort, 1), 65535),
+    remotePath: (input.remotePath ?? DEFAULT_SFTP_CONFIG.remotePath).trim() || DEFAULT_SFTP_CONFIG.remotePath,
+    username: (input.username ?? '').trim(),
+    authType: input.authType === 'key' ? 'key' : 'password',
   };
 }
 
@@ -123,6 +144,20 @@ export async function loadSmbConfig(): Promise<SmbConfig> {
 
 export async function saveSmbConfig(config: SmbConfig): Promise<void> {
   await AsyncStorage.setItem(SMB_CONFIG_KEY, JSON.stringify(sanitizeSmbConfig(config)));
+}
+
+export async function loadSftpConfig(): Promise<SftpConfig> {
+  const raw = await AsyncStorage.getItem(SFTP_CONFIG_KEY);
+  const parsed = safeJsonParse<Partial<SftpConfig>>(raw, DEFAULT_SFTP_CONFIG);
+
+  return {
+    ...DEFAULT_SFTP_CONFIG,
+    ...sanitizeSftpConfig(parsed),
+  };
+}
+
+export async function saveSftpConfig(config: SftpConfig): Promise<void> {
+  await AsyncStorage.setItem(SFTP_CONFIG_KEY, JSON.stringify(sanitizeSftpConfig(config)));
 }
 
 export async function loadSyncMetadata(): Promise<SyncMetadata> {
@@ -225,4 +260,47 @@ export async function clearSmbPassword(): Promise<void> {
   }
 
   await AsyncStorage.removeItem(SMB_PASSWORD_FALLBACK_KEY);
+}
+
+export async function loadSftpPassword(): Promise<string> {
+  try {
+    const value = await SecureStore.getItemAsync(SFTP_PASSWORD_KEY);
+    if (value != null) {
+      return value;
+    }
+  } catch {
+    // Ignore and fall back to AsyncStorage.
+  }
+
+  const fallback = await AsyncStorage.getItem(SFTP_PASSWORD_FALLBACK_KEY);
+  return fallback ?? '';
+}
+
+export async function saveSftpPassword(password: string): Promise<void> {
+  const normalized = password.trim();
+
+  if (!normalized) {
+    await clearSftpPassword();
+    return;
+  }
+
+  try {
+    await SecureStore.setItemAsync(SFTP_PASSWORD_KEY, normalized);
+    await AsyncStorage.removeItem(SFTP_PASSWORD_FALLBACK_KEY);
+    return;
+  } catch {
+    // Continue to AsyncStorage fallback.
+  }
+
+  await AsyncStorage.setItem(SFTP_PASSWORD_FALLBACK_KEY, normalized);
+}
+
+export async function clearSftpPassword(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(SFTP_PASSWORD_KEY);
+  } catch {
+    // Ignore secure-store errors.
+  }
+
+  await AsyncStorage.removeItem(SFTP_PASSWORD_FALLBACK_KEY);
 }
