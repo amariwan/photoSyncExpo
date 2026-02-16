@@ -125,7 +125,7 @@ function ToggleRow({
         value={value}
         onValueChange={onChange}
         disabled={disabled}
-        trackColor={{ false: '#39393D', true: '#FF9F0A' }}
+        trackColor={{ false: '#39393D', true: '#2ECC71' }}
         thumbColor="#FFFFFF"
       />
     </View>
@@ -238,7 +238,7 @@ export default function SettingsScreen() {
 
     setIsSaving(true);
     try {
-      const operations: Array<Promise<void>> = [];
+      const operations: Promise<void>[] = [];
 
       if (hasSmbConnectionChanges) {
         operations.push(
@@ -347,7 +347,7 @@ export default function SettingsScreen() {
           style={StyleSheet.absoluteFill}
         />
         <LinearGradient
-          colors={['rgba(255,159,10,0.1)', 'rgba(255,159,10,0.0)']}
+          colors={['rgba(46,204,113,0.1)', 'rgba(46,204,113,0.0)']}
           start={{ x: 1, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.orbTop}
@@ -363,7 +363,7 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Reveal delay={20}>
           <LinearGradient
-            colors={['rgba(255,159,10,0.15)', 'rgba(28,28,30,0.95)']}
+            colors={['rgba(46,204,113,0.15)', 'rgba(28,28,30,0.95)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroCard}>
@@ -403,7 +403,7 @@ export default function SettingsScreen() {
         </Reveal>
 
         <Reveal delay={80}>
-          <View style={styles.card}>
+          <View className="bg-glass-thick rounded-lg" style={styles.card}>
             <View style={styles.sectionHeader}>
               <Text style={styles.cardTitle}>Connection</Text>
               <Text style={styles.cardHint}>
@@ -525,6 +525,7 @@ export default function SettingsScreen() {
                 accessibilityRole="button"
                 disabled={!isReady || isTestingConnection || isSaving}
                 onPress={handleTestConnection}
+                className="rounded-xl px-4 py-3 bg-accent"
                 style={[
                   styles.testButton,
                   (!isReady || isTestingConnection || isSaving) && styles.testButtonDisabled,
@@ -532,7 +533,7 @@ export default function SettingsScreen() {
                 {isTestingConnection ? (
                   <ActivityIndicator color="#092034" />
                 ) : (
-                  <Text style={styles.testButtonText}>Test Connection</Text>
+                  <Text className="text-black font-semibold" style={styles.testButtonText}>Test Connection</Text>
                 )}
               </Pressable>
               {connectionTestMessage ? (
@@ -552,7 +553,7 @@ export default function SettingsScreen() {
         </Reveal>
 
         <Reveal delay={140}>
-          <View style={styles.card}>
+          <View className="bg-glass-thick rounded-lg" style={styles.card}>
             <View style={styles.sectionHeader}>
               <Text style={styles.cardTitle}>Sync Behavior</Text>
               <Text style={styles.cardHint}>Automation, network policy, and retention settings</Text>
@@ -685,8 +686,9 @@ export default function SettingsScreen() {
             accessibilityRole="button"
             disabled={!isReady || isSaving || !hasUnsavedChanges}
             onPress={handleSave}
+            className="rounded-lg px-4 py-3 bg-accent"
             style={[styles.saveButton, (!isReady || isSaving || !hasUnsavedChanges) && styles.saveButtonDisabled]}>
-            <Text style={styles.saveButtonText}>{isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}</Text>
+            <Text className="text-black font-semibold" style={styles.saveButtonText}>{isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}</Text>
           </Pressable>
         </LinearGradient>
       </View>
@@ -733,7 +735,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   heroLabel: {
-    color: '#FF9F0A',
+    color: '#2ECC71',
     fontFamily: Fonts.rounded,
     fontSize: 13,
     fontWeight: '700',
@@ -885,7 +887,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#2ECC71',
   },
   testButtonDisabled: {
     opacity: 0.4,
@@ -934,7 +936,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#2ECC71',
     paddingHorizontal: 18,
   },
   saveButtonDisabled: {

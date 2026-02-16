@@ -7,7 +7,7 @@ import { usePhotoSync } from '@/providers/photo-sync-provider';
 import { syncHeroSectionStyles as styles } from './sync-hero-section.styles';
 import { formatTimestamp, mediaFilterLabel } from './sync-screen-formatters';
 
-const HERO_COLORS = ['rgba(255,159,10,0.18)', 'rgba(28,28,30,0.95)'] as const;
+const HERO_COLORS = ['rgba(46,204,113,0.18)', 'rgba(28,28,30,0.95)'] as const;
 const HERO_START = { x: 0, y: 0 };
 const HERO_END = { x: 1, y: 1 };
 
@@ -92,37 +92,37 @@ export function SyncHeroSection() {
 
   return (
     <LinearGradient colors={HERO_COLORS} end={HERO_END} start={HERO_START} style={styles.heroCard}>
-      <Text style={styles.brand}>PhotoSync</Text>
-      <Text style={styles.title}>{stats.completionPercent}% Synced</Text>
-      <Text style={styles.subtitle}>{banner.message}</Text>
+      <Text className="text-accent uppercase tracking-wider font-semibold text-xs">PhotoSync</Text>
+      <Text className="text-white font-extrabold text-3xl leading-10">{stats.completionPercent}% Synced</Text>
+      <Text className="text-[rgba(235,235,245,0.6)] text-base leading-5 mb-2">{banner.message}</Text>
 
-      <View style={styles.pills}>
-        <View style={styles.pill}>
-          <Text style={styles.pillLabel}>Permission</Text>
-          <Text style={styles.pillValue}>{permissionState.toUpperCase()}</Text>
+      <View className="flex-row gap-2 mt-1">
+        <View className="flex-1 rounded-md px-md py-md bg-glass-thin">
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider">Permission</Text>
+          <Text className="mt-1 text-white text-sm font-mono font-semibold">{permissionState.toUpperCase()}</Text>
         </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillLabel}>Phase</Text>
-          <Text style={styles.pillValue}>{phase.toUpperCase()}</Text>
+        <View className="flex-1 rounded-md px-md py-md bg-glass-thin">
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider">Phase</Text>
+          <Text className="mt-1 text-white text-sm font-rounded font-semibold">{phase.toUpperCase()}</Text>
         </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillLabel}>Issues</Text>
-          <Text style={styles.pillValue}>{stats.issues}</Text>
+        <View className="flex-1 rounded-md px-md py-md bg-glass-thin">
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider">Issues</Text>
+          <Text className="mt-1 text-white text-sm font-semibold">{stats.issues}</Text>
         </View>
       </View>
 
       <View style={styles.metricsRow}>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Queued</Text>
-          <Text style={styles.metricValue}>{stats.pending + stats.uploading}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin items-center">
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider">Queued</Text>
+          <Text className="mt-1 text-white text-2xl font-extrabold">{stats.pending + stats.uploading}</Text>
         </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Completed</Text>
-          <Text style={styles.metricValue}>{stats.completed}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin items-center">
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider">Completed</Text>
+          <Text className="mt-1 text-white text-2xl font-extrabold">{stats.completed}</Text>
         </View>
-        <View style={styles.metricBlock}>
-          <Text style={styles.metricLabel}>Failed</Text>
-          <Text style={styles.metricValue}>{stats.failed}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin items-center">
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider">Failed</Text>
+          <Text className="mt-1 text-white text-2xl font-extrabold">{stats.failed}</Text>
         </View>
       </View>
 

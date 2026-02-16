@@ -16,10 +16,10 @@ export function RecentUploadsSection() {
     : 'Newest first, limited preview';
 
   return (
-    <View style={syncSectionStyles.card}>
+    <View className="rounded-lg p-md bg-glass-thin" style={syncSectionStyles.card}>
       <SyncSectionHeader caption={caption} title="Recent Upload Items" />
       {visibleQueue.length === 0 ? (
-        <Text style={syncSectionStyles.empty}>No items queued yet.</Text>
+        <Text className="text-[rgba(235,235,245,0.45)]" style={syncSectionStyles.empty}>No items queued yet.</Text>
       ) : (
         visibleQueue.map((item) => (
           <RecentUploadItemCard item={item} key={item.id} maxRetryAttempts={syncSettings.maxRetryAttempts} />

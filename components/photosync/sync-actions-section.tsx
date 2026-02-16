@@ -3,9 +3,9 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { usePhotoSync } from '@/providers/photo-sync-provider';
 
+import { syncActionsSectionStyles as styles } from './sync-actions-section.styles';
 import { formatTimestamp } from './sync-screen-formatters';
 import { SyncSectionHeader } from './sync-section-header';
-import { syncActionsSectionStyles as styles } from './sync-actions-section.styles';
 import { syncSectionStyles } from './sync-section.styles';
 
 async function runWithBusyState(action: () => Promise<unknown>, setBusy: (busy: boolean) => void) {
@@ -46,20 +46,22 @@ export function SyncActionsSection() {
         </View>
       </View>
 
-      <View style={styles.primaryRow}>
+      <View className="flex-row gap-3" style={styles.primaryRow}>
         <Pressable
           accessibilityRole="button"
           disabled={isBusy || !isReady}
           onPress={() => runWithBusyState(requestPhotoPermission, setIsWorking)}
+          className="rounded-md px-3 py-2 bg-glass-light"
           style={[styles.secondaryButton, (isBusy || !isReady) && styles.buttonDisabled]}>
-          <Text style={styles.secondaryButtonText}>Grant Access</Text>
+          <Text className="text-[rgba(235,235,245,0.6)]" style={styles.secondaryButtonText}>Grant Access</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
           disabled={isBusy || !isReady}
           onPress={() => runWithBusyState(scanForNewMedia, setIsWorking)}
+          className="rounded-md px-3 py-2 bg-glass-light"
           style={[styles.secondaryButton, (isBusy || !isReady) && styles.buttonDisabled]}>
-          <Text style={styles.secondaryButtonText}>Scan Now</Text>
+          <Text className="text-[rgba(235,235,245,0.6)]" style={styles.secondaryButtonText}>Scan Now</Text>
         </Pressable>
       </View>
 
@@ -67,8 +69,9 @@ export function SyncActionsSection() {
         accessibilityRole="button"
         disabled={isBusy || !isReady}
         onPress={() => runWithBusyState(() => runSync({ trigger: 'manual' }), setIsWorking)}
+        className="rounded-lg px-4 py-3 bg-accent"
         style={[styles.primaryButton, (isBusy || !isReady) && styles.buttonDisabled]}>
-        <Text style={styles.primaryButtonText}>Start Upload Run</Text>
+        <Text className="text-black font-semibold" style={styles.primaryButtonText}>Start Upload Run</Text>
       </Pressable>
 
       <View style={styles.secondaryRow}>

@@ -27,11 +27,11 @@ function assertNever(value: never): never {
 
 export function RecentActivityItem({ entry }: RecentActivityItemProps) {
   return (
-    <View style={styles.item}>
+    <View className="flex-row items-start gap-3 px-md py-2 rounded-md bg-glass-light" style={styles.item}>
       <View style={[styles.dot, dotStyle(entry.level)]} />
-      <View style={styles.content}>
-        <Text style={styles.message}>{entry.message}</Text>
-        <Text style={styles.time}>{entry.level.toUpperCase()} - {new Date(entry.timestamp).toLocaleTimeString()}</Text>
+      <View className="flex-1" style={styles.content}>
+        <Text className="text-white text-sm" style={styles.message}>{entry.message}</Text>
+        <Text className="text-[rgba(235,235,245,0.45)] text-xs" style={styles.time}>{entry.level.toUpperCase()} - {new Date(entry.timestamp).toLocaleTimeString()}</Text>
       </View>
     </View>
   );

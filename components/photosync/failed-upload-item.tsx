@@ -26,20 +26,21 @@ export function FailedUploadItem({
     : `Attempts: ${item.attemptCount}/${maxRetryAttempts}`;
 
   return (
-    <View style={styles.card}>
+    <View className="rounded-lg p-md bg-glass-thin" style={styles.card}>
       <View style={styles.header}>
-        <View style={styles.fileColumn}>
-          <Text numberOfLines={1} style={styles.filename}>
+        <View className="flex-1" style={styles.fileColumn}>
+          <Text numberOfLines={1} className="text-white font-semibold" style={styles.filename}>
             {item.filename}
           </Text>
-          <Text style={styles.meta}>{new Date(item.creationTime).toLocaleString()}</Text>
+          <Text className="text-[rgba(235,235,245,0.45)] text-sm" style={styles.meta}>{new Date(item.creationTime).toLocaleString()}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
           disabled={isRetryDisabled}
           onPress={() => onRetry(item.id)}
+          className="rounded-md px-3 py-2 bg-accent"
           style={[styles.retryButton, isRetryDisabled && styles.retryButtonDisabled]}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text className="text-black font-semibold" style={styles.retryButtonText}>Retry</Text>
         </Pressable>
       </View>
 

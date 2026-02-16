@@ -3,11 +3,11 @@ import { Text, View } from 'react-native';
 
 import type { UploadItem, UploadItemStatus } from '@/types/photosync';
 
-import { formatProgressPercent } from './sync-screen-formatters';
 import {
   progressFillWidthStyles,
   recentUploadItemCardStyles as styles,
 } from './recent-upload-item-card.styles';
+import { formatProgressPercent } from './sync-screen-formatters';
 
 interface RecentUploadItemCardProps {
   item: UploadItem;
@@ -31,13 +31,13 @@ function selectProgressStyle(progress: number) {
 
 export function RecentUploadItemCard({ item, maxRetryAttempts }: RecentUploadItemCardProps) {
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text numberOfLines={1} style={styles.filename}>
+    <View className="rounded-md p-md bg-glass-thin" style={styles.card}>
+      <View className="flex-row justify-between items-center" style={styles.header}>
+        <Text numberOfLines={1} className="text-white font-semibold" style={styles.filename}>
           {item.filename}
         </Text>
-        <View style={[styles.statusBadge, styles[statusStyleByValue[item.status]]]}>
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+        <View style={[styles.statusBadge, styles[statusStyleByValue[item.status]]]} className="px-2 py-1 rounded-md">
+          <Text className="text-sm font-semibold" style={styles.statusText}>{item.status.toUpperCase()}</Text>
         </View>
       </View>
 

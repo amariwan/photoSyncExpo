@@ -10,9 +10,9 @@ interface SyncSectionHeaderProps {
 
 export function SyncSectionHeader({ title, caption }: SyncSectionHeaderProps) {
   return (
-    <View style={styles.header}>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.caption}>{caption}</Text>
+    <View className="mb-2" style={styles.header}>
+      <Text className="text-white text-lg font-bold" style={styles.title}>{title}</Text>
+      <Text className="text-[rgba(235,235,245,0.45)] text-sm" style={styles.caption}>{caption}</Text>
     </View>
   );
 }

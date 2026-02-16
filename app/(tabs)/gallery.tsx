@@ -257,7 +257,7 @@ export default function GalleryScreen() {
           style={StyleSheet.absoluteFill}
         />
         <LinearGradient
-          colors={['rgba(255,159,10,0.12)', 'rgba(255,159,10,0.0)']}
+          colors={['rgba(46,204,113,0.12)', 'rgba(46,204,113,0.0)']}
           start={{ x: 1, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.orbTop}
@@ -273,7 +273,7 @@ export default function GalleryScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Reveal delay={20}>
           <LinearGradient
-            colors={['rgba(255,159,10,0.18)', 'rgba(28,28,30,0.95)']}
+            colors={['rgba(46,204,113,0.18)', 'rgba(28,28,30,0.95)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroCard}>
@@ -309,7 +309,7 @@ export default function GalleryScreen() {
         </Reveal>
 
         <Reveal delay={90}>
-          <View style={styles.card}>
+          <View className="rounded-lg p-md bg-glass-thick" style={styles.card}>
             <View style={styles.filterRow}>
               {FILTER_OPTIONS.map((option) => {
                 const isActive = option.value === filter;
@@ -331,8 +331,9 @@ export default function GalleryScreen() {
               accessibilityRole="button"
               disabled={isLoading}
               onPress={() => void loadServerMedia()}
+              className="rounded-md px-4 py-3 bg-accent"
               style={[styles.refreshButton, isLoading && styles.refreshButtonDisabled]}>
-              <Text style={styles.refreshButtonText}>{isLoading ? 'Loading...' : 'Refresh from Server'}</Text>
+              <Text className="text-[--rn-dark-100,#111113] font-bold" style={styles.refreshButtonText}>{isLoading ? 'Loading...' : 'Refresh from Server'}</Text>
             </Pressable>
 
             {errorMessage ? (
@@ -343,7 +344,7 @@ export default function GalleryScreen() {
 
             {isLoading && filteredItems.length === 0 ? (
               <View style={styles.loadingWrap}>
-                <ActivityIndicator size="large" color="#FF9F0A" />
+                <ActivityIndicator size="large" color="#2ECC71" />
               </View>
             ) : filteredItems.length === 0 ? (
               <Text style={styles.emptyText}>No matching media files on server.</Text>
@@ -420,7 +421,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroLabel: {
-    color: '#FF9F0A',
+    color: '#2ECC71',
     fontFamily: Fonts.rounded,
     fontSize: 13,
     fontWeight: '700',
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF9F0A',
+    backgroundColor: '#2ECC71',
   },
   refreshButtonDisabled: {
     opacity: 0.7,

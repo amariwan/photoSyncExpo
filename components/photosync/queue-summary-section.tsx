@@ -21,30 +21,30 @@ export function QueueSummarySection() {
     stats.failed > 0 ? 'Needs Attention' : stats.uploading > 0 ? 'In Progress' : 'Healthy';
 
   return (
-    <View style={syncSectionStyles.card}>
+    <View className="rounded-lg p-md bg-glass-thin" style={syncSectionStyles.card}>
       <SyncSectionHeader caption="Current status across all tracked media" title="Queue Summary" />
 
-      <View style={styles.topStrip}>
+      <View className="rounded-md px-md py-2 bg-glass-light" style={styles.topStrip}>
         <Text style={styles.topStripTitle}>Queue Health</Text>
         <Text style={styles.topStripValue}>{healthLabel}</Text>
       </View>
 
       <View style={styles.metricRow}>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Pending</Text>
-          <Text style={styles.metricValue}>{stats.pending}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin" style={styles.metricCard}>
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider" style={styles.metricLabel}>Pending</Text>
+          <Text className="text-white text-2xl font-extrabold" style={styles.metricValue}>{stats.pending}</Text>
         </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Uploading</Text>
-          <Text style={styles.metricValue}>{stats.uploading}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin" style={styles.metricCard}>
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider" style={styles.metricLabel}>Uploading</Text>
+          <Text className="text-white text-2xl font-extrabold" style={styles.metricValue}>{stats.uploading}</Text>
         </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Completed</Text>
-          <Text style={styles.metricValue}>{stats.completed}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin" style={styles.metricCard}>
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider" style={styles.metricLabel}>Completed</Text>
+          <Text className="text-white text-2xl font-extrabold" style={styles.metricValue}>{stats.completed}</Text>
         </View>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Failed</Text>
-          <Text style={styles.metricValue}>{stats.failed}</Text>
+        <View className="flex-1 rounded-md px-md py-3 bg-glass-thin" style={styles.metricCard}>
+          <Text className="text-[rgba(235,235,245,0.3)] text-[11px] font-semibold uppercase tracking-wider" style={styles.metricLabel}>Failed</Text>
+          <Text className="text-white text-2xl font-extrabold" style={styles.metricValue}>{stats.failed}</Text>
         </View>
       </View>
 

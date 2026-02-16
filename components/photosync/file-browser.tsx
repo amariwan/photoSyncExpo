@@ -45,7 +45,7 @@ export function FileBrowser({
     };
 
     return (
-        <View style={{ flex: 1, backgroundColor: AppleColors.background }}>
+        <View className="flex-1" style={{ flex: 1, backgroundColor: AppleColors.background }}>
             {/* Breadcrumb Navigation */}
             <View
                 style={{
@@ -57,14 +57,12 @@ export function FileBrowser({
                 }}
             >
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <TouchableOpacity onPress={() => onNavigate('/')} style={{ marginRight: Spacing.sm }}>
-                        <Text
-                            style={{
-                                fontSize: 14,
-                                color: AppleColors.blue,
-                                fontWeight: '600',
-                            }}
-                        >
+                    <TouchableOpacity onPress={() => onNavigate('/')} style={{ marginRight: Spacing.sm }} className="mr-sm">
+                        <Text className="text-[14px] text-[var(--tw-color-apple-blue,#0A84FF)] font-semibold" style={{
+                            fontSize: 14,
+                            color: AppleColors.blue,
+                            fontWeight: '600',
+                        }}>
                             /
                         </Text>
                     </TouchableOpacity>

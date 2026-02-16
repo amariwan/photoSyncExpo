@@ -48,15 +48,15 @@ export const AppleColors = {
   // System accents
   blue: "#0A84FF",
   green: "#30D158",
-  orange: "#FF9F0A",
+  orange: "#2ECC71",
   red: "#FF453A",
   yellow: "#FFD60A",
   purple: "#BF5AF2",
   teal: "#64D2FF",
 
   // Brand
-  accent: "#FF9F0A",
-  accentSoft: "rgba(255, 159, 10, 0.16)",
+  accent: "#2ECC71",
+  accentSoft: "rgba(46, 204, 113, 0.16)",
 
   // Separators
   separator: "rgba(84, 84, 88, 0.65)",

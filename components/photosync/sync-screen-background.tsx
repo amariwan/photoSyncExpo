@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { syncScreenBackgroundStyles as styles } from './sync-screen-background.styles';
 
-const TOP_ORB_COLORS = ['rgba(255,159,10,0.12)', 'rgba(255,159,10,0.0)'] as const;
+const TOP_ORB_COLORS = ['rgba(46,204,113,0.12)', 'rgba(46,204,113,0.0)'] as const;
 const BOTTOM_ORB_COLORS = ['rgba(10,132,255,0.1)', 'rgba(10,132,255,0.0)'] as const;
 
 export function SyncScreenBackground() {

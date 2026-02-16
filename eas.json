@@ -7,7 +7,6 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "channel": "development",
       "env": {
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
       },
@@ -18,14 +17,12 @@
     "preview": {
       "distribution": "internal",
       "developmentClient": true,
-      "channel": "preview",
       "env": {
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"
       }
     },
     "production": {
       "distribution": "store",
-      "channel": "production",
       "autoIncrement": true,
       "env": {
         "EAS_BUILD_NO_EXPO_GO_WARNING": "true"

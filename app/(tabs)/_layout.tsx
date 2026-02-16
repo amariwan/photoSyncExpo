@@ -1,25 +1,34 @@
 import { Tabs } from 'expo-router';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import React from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { PhotoSyncProvider } from '@/providers/photo-sync-provider';
 
+const TAB_BAR_BORDER_COLOR = 'rgba(84, 84, 88, 0.35)';
+const TAB_BAR_FALLBACK_BACKGROUND = 'rgba(22, 22, 22, 0.92)';
+
 export default function TabLayout() {
+  const supportsLiquidGlass =
+    Platform.OS === 'ios' && isGlassEffectAPIAvailable() && isLiquidGlassAvailable();
+
   return (
     <PhotoSyncProvider>
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: '#FFFFFF',
           tabBarInactiveTintColor: 'rgba(235, 235, 245, 0.3)',
-          tabBarStyle: {
-            position: 'absolute',
-            backgroundColor: 'rgba(22, 22, 22, 0.92)',
-            borderTopColor: 'rgba(84, 84, 88, 0.35)',
-            borderTopWidth: 0.5,
-            height: 88,
-            paddingTop: 8,
-            paddingBottom: 20,
-          },
+          tabBarStyle: styles.tabBar,
+          tabBarBackground: () =>
+            supportsLiquidGlass ? (
+              <View style={styles.tabBarBackground}>
+                <GlassView glassEffectStyle="regular" style={styles.tabBarGlass} tintColor="rgba(22, 22, 22, 0.35)" />
+                <View pointerEvents="none" style={styles.tabBarBorder} />
+              </View>
+            ) : (
+              <View style={styles.tabBarFallbackBackground} />
+            ),
           tabBarItemStyle: {
             borderRadius: 0,
           },
@@ -65,3 +74,35 @@ export default function TabLayout() {
     </PhotoSyncProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    position: 'absolute',
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    height: 88,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  tabBarBackground: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  tabBarGlass: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  tabBarBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: TAB_BAR_BORDER_COLOR,
+  },
+  tabBarFallbackBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: TAB_BAR_FALLBACK_BACKGROUND,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: TAB_BAR_BORDER_COLOR,
+  },
+});

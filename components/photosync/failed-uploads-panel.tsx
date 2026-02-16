@@ -5,8 +5,8 @@ import { usePhotoSync } from '@/providers/photo-sync-provider';
 import { deriveSyncState, syncStateLabel, type SyncState } from '@/services/photosync/sync-state';
 
 import { FailedUploadItem } from './failed-upload-item';
-import { selectRecentFailedUploads } from './failed-uploads-selectors';
 import { failedUploadsPanelStyles as styles } from './failed-uploads-panel.styles';
+import { selectRecentFailedUploads } from './failed-uploads-selectors';
 
 const syncStateStyleByValue: Record<SyncState, keyof typeof styles> = {
   idle: 'syncStateIdle',
@@ -26,11 +26,11 @@ export function FailedUploadsPanel() {
   );
 
   return (
-    <View style={styles.sectionCard}>
+    <View className="rounded-lg p-md bg-glass-thin" style={styles.sectionCard}>
       <View style={styles.headerRow}>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.title}>Failed Uploads</Text>
-          <Text style={styles.subtitle}>
+        <View className="flex-1" style={styles.headerTextWrap}>
+          <Text className="text-white font-bold" style={styles.title}>Failed Uploads</Text>
+          <Text className="text-[rgba(235,235,245,0.45)] text-sm" style={styles.subtitle}>
             {failedItems.length} visible failed item(s) • retry exhausted: {retryExhaustedCount}
           </Text>
         </View>
@@ -43,8 +43,9 @@ export function FailedUploadsPanel() {
         accessibilityRole="button"
         disabled={isRetryAllDisabled}
         onPress={retryFailedUploads}
+        className="rounded-md px-3 py-2 bg-accent"
         style={[styles.retryAllButton, isRetryAllDisabled && styles.retryAllButtonDisabled]}>
-        <Text style={styles.retryAllText}>Retry All Failed</Text>
+        <Text className="text-black font-semibold" style={styles.retryAllText}>Retry All Failed</Text>
       </Pressable>
 
       {failedItems.length === 0 ? (
